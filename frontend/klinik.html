@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Monitoring</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    canvas {
+      max-width: 600px;
+      margin: 20px auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Monitoring Status dan Latency Aplikasi</h1>
+  <canvas id="statusChart"></canvas>
+  <canvas id="latencyChart"></canvas>
+
+  <script>
+    // Grafik Status
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
+      type: 'line',
+      data: {
+        labels: [], // Waktu
+        datasets: [{
+          label: 'Status Aplikasi',
+          data: [], // Status
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          borderWidth: 1,
+          tension: 0.3,
+        }]
+      },
+      options: {
+        scales: {
+          x: { title: { display: true, text: 'Waktu' } },
+          y: { 
+            title: { display: true, text: 'Status (0 = Error, 1 = OK)' }, 
+            min: 0, 
+            max: 1 
+          }
+        }
+      }
+    });
+
+    // Grafik Latency
+    const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+    const latencyChart = new Chart(latencyCtx, {
+      type: 'line',
+      data: {
+        labels: [], // Waktu
+        datasets: [{
+          label: 'Latency (ms)',
+          data: [], // Latency
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          borderWidth: 1,
+          tension: 0.3,
+        }]
+      },
+      options: {
+        scales: {
+          x: { title: { display: true, text: 'Waktu' } },
+          y: { 
+            title: { display: true, text: 'Latency (ms)' }, 
+            beginAtZero: true 
+          }
+        }
+      }
+    });
+
+    // Fungsi untuk mendapatkan data monitoring
+    async function fetchData() {
+      try {
+        const response = await fetch('http://localhost:3000/data');
+        if (!response.ok) {
+          throw new Error('Gagal mengambil data');
+        }
+        const data = await response.json();
+
+        // Update grafik Status
+        statusChart.data.labels = data.map(entry => entry.time);
+        statusChart.data.datasets[0].data = data.map(entry => (entry.status === 'ok' ? 1 : 0));
+        statusChart.update();
+
+        // Update grafik Latency
+        latencyChart.data.labels = data.map(entry => entry.time);
+        latencyChart.data.datasets[0].data = data.map(entry => entry.latency);
+        latencyChart.update();
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    // Memperbarui data setiap 5 detik
+    setInterval(fetchData, 5000);
+    fetchData();
+  </script>
+</body>
+</html>
